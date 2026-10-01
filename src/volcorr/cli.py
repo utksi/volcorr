@@ -14,11 +14,6 @@ def main(argv=None) -> int:
     p.add_argument("--sg", type=int, help="space group number (1-230)")
     p.add_argument("--cif", help="experimental structure (CIF file)")
     p.add_argument("--vdft", type=float, help="your PBE(+U) volume, A^3/atom -> corrected volume")
-    p.add_argument("--relaxed", help="your PBE(+U)-relaxed structure (CONTCAR, CIF, ...); needs --gap and --mag")
-    p.add_argument("--gap", type=float, help="band gap of that calculation, eV")
-    p.add_argument("--mag", type=float, help="total magnetization of the relaxed cell, mu_B")
-    p.add_argument("--eform", type=float, help="formation energy, eV/atom (MP-compatible; optional, with --ehull)")
-    p.add_argument("--ehull", type=float, help="energy above the convex hull, eV/atom (optional, with --eform)")
     p.add_argument("--mace", action="store_true", help="relax the CIF with MACE-MPA-0 and correct it")
     p.add_argument("--device", default="cpu")
     u = p.add_mutually_exclusive_group()
@@ -26,13 +21,12 @@ def main(argv=None) -> int:
     u.add_argument("--no-u", dest="pbe_plus_u", action="store_false", help="force plain PBE")
     p.add_argument("--json", action="store_true", help="machine-readable output")
     a = p.parse_args(argv)
-    if not a.formula and not a.cif and not a.relaxed:
-        p.error("give a formula, --cif or --relaxed")
+    if not a.formula and not a.cif:
+        p.error("give a formula or --cif")
 
     from volcorr.predict import predict
 
-    r = predict(a.formula, a.sg, a.cif, a.vdft, a.mace, a.pbe_plus_u, a.device, relaxed=a.relaxed,
-                band_gap=a.gap, magnetization=a.mag, formation_energy=a.eform, e_above_hull=a.ehull)
+    r = predict(a.formula, a.sg, a.cif, a.vdft, a.mace, a.pbe_plus_u, a.device)
     d = r.as_dict()
     if a.json:
         json.dump(d, sys.stdout, indent=1)

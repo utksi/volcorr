@@ -75,10 +75,6 @@ table { border-collapse: collapse; margin: 8px 0; font-size: 13px; }
 td, th { padding: 3px 12px 3px 0; text-align: left; }
 th { color: var(--text); }
 a { color: var(--accent); }
-.fin { margin-top: 14px; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
-.fin summary { cursor: pointer; font-weight: 600; font-size: 13px; }
-.fin p.hint { font-size: 12.5px; margin: 6px 0 0; }
-.fin textarea { min-height: 90px; }
 .linkbtn { margin-top: 6px; padding: 0; border: 0; background: none; color: var(--accent); font: inherit;
   font-size: 13px; cursor: pointer; }
 code { font-size: 12.5px; }
@@ -116,23 +112,6 @@ code { font-size: 12.5px; }
 
       <label for="vdft">Your PBE(+U) volume, Å³/atom <span class="hint">(optional → corrected volume)</span></label>
       <input id="vdft" type="number" step="any" min="0" placeholder="e.g. 23.0">
-
-      <details id="fin" class="fin">
-        <summary>Results of your own PBE(+U) relaxation <span class="hint">(optional, most accurate)</span></summary>
-        <p class="hint">For a relaxation done with Materials Project settings. Give the relaxed structure, its band
-          gap and its total magnetization; this replaces the volume field above.</p>
-        <label for="ftext">Relaxed structure <span class="hint">(paste CONTCAR, CIF or extxyz; or choose a file)</span></label>
-        <textarea id="ftext" spellcheck="false" placeholder="CONTCAR of the finished relaxation"></textarea>
-        <input id="ffile" type="file" style="margin-top:6px;font-size:13px">
-        <div class="row">
-          <div><label for="fgap">Band gap, eV</label><input id="fgap" type="number" step="any" min="0" placeholder="0 for a metal"></div>
-          <div><label for="fmag">Total magnetization of that cell, &mu;<sub>B</sub></label><input id="fmag" type="number" step="any" placeholder="0 if non-magnetic"></div>
-        </div>
-        <div class="row">
-          <div><label for="fform">Formation energy, eV/atom <span class="hint">(optional, MP-compatible)</span></label><input id="fform" type="number" step="any"></div>
-          <div><label for="fhull">Energy above hull, eV/atom <span class="hint">(optional)</span></label><input id="fhull" type="number" step="any" min="0"></div>
-        </div>
-      </details>
 
       <label>Hubbard U</label>
       <div class="radios">
@@ -174,8 +153,6 @@ code { font-size: 12.5px; }
       <tr><td>formula + space group</td><td>1.33 %</td></tr>
       <tr><td>experimental structure</td><td>1.24 %</td></tr>
       <tr><td>+ your PBE(+U) volume</td><td>1.32 %</td></tr>
-      <tr><td>your finished relaxation (structure, band gap, magnetization)</td><td>1.30 %</td></tr>
-      <tr><td>+ formation energy and energy above hull</td><td>1.29 %</td></tr>
     </table>
     <p>The full correction in the accompanying paper reaches 1.09 % for these calculations, but it also uses
       outputs of the finished DFT calculation (relaxed geometry, band gap, magnetization), which are not asked
@@ -192,7 +169,7 @@ import initMoyo, { analyze_cell } from "https://cdn.jsdelivr.net/npm/@spglib/moy
 const MODEL_URL = "https://huggingface.co/utksi/volcorr-models/resolve/main/";
 const $ = (id) => document.getElementById(id);
 const status = (t) => { $("status").textContent = t; };
-let py, aseReady = null, structText = "", structName = "", relText = "", relName = "";
+let py, aseReady = null, structText = "", structName = "";
 
 const BOOT = `
 import os, sys, json
@@ -215,9 +192,7 @@ def read_cell(text, fmt):
 def run(args):
     from volcorr.predict import predict
     a = json.loads(args)
-    r = predict(a['formula'], a['sg'], a['text'], a['vdft'], False, a['u'], structure_format=a['fmt'],
-                relaxed=a.get('relaxed'), relaxed_format=a.get('rfmt'), band_gap=a.get('gap'),
-                magnetization=a.get('mag'), formation_energy=a.get('form'), e_above_hull=a.get('hull'))
+    r = predict(a['formula'], a['sg'], a['text'], a['vdft'], False, a['u'], structure_format=a['fmt'])
     d = r.as_dict()
     d.update(delta=r.delta, i68=list(r.interval68), i90=list(r.interval90))
     return json.dumps(d)
@@ -260,7 +235,7 @@ async function fetchModels(tier) {
     const path = "/home/pyodide/cache/" + names[i];
     if (py.FS.analyzePath(path).exists) continue;
     status(`Downloading model ${i + 1}/${names.length} (first use of this mode only)...`);
-    const res = await fetch(MODEL_URL + names[i], { cache: "no-cache" });
+    const res = await fetch(MODEL_URL + names[i]);
     if (!res.ok) throw new Error(`model download failed (${res.status})`);
     py.FS.writeFile(path, new Uint8Array(await res.arrayBuffer()));
   }
@@ -326,31 +301,14 @@ async function predictClick() {
       }
       if (!formula) formula = cell.formula;
     }
-    // results of a finished relaxation (optional)
-    const rtext = $("ftext").value.trim() || relText;
-    const num = (id) => ($(id).value === "" ? null : parseFloat($(id).value));
-    const gap = num("fgap"), mag = num("fmag"), form = num("fform"), hull = num("fhull");
-    let rfmt = $("ftext").value.trim() ? null : guessFormat(relName);
-    if (rtext) {
-      if (gap == null || mag == null) throw new Error("With a relaxed structure, give its band gap and total magnetization.");
-      status("Loading the structure reader...");
-      await ensureAse();
-      const rc = JSON.parse(py.globals.get("read_cell")(rtext, rfmt));
-      if (!formula) formula = rc.formula;
-      if (!sg) {
-        const r = analyze_cell(JSON.stringify({ lattice: { basis: rc.basis }, positions: rc.pos, numbers: rc.z }), 0.01, "Standard");
-        sg = r.number; sgSource = `space group ${r.number} (${r.hm_symbol}) found in the relaxed structure`;
-      }
-    }
     if (!formula) throw new Error("Enter a formula or give a structure.");
-    const vdft = rtext ? null : ($("vdft").value ? parseFloat($("vdft").value) : null);
+    const vdft = $("vdft").value ? parseFloat($("vdft").value) : null;
     if (vdft != null && !sg) throw new Error("A corrected volume needs the space group (or a structure).");
-    const tier = rtext ? (form != null && hull != null ? "G_finished_mp" : "F_finished")
-      : vdft != null ? "D_vdft" : text ? "C_cif" : sg ? "B_spacegroup" : "A_formula";
+    const tier = vdft != null ? "D_vdft" : text ? "C_cif" : sg ? "B_spacegroup" : "A_formula";
     await fetchModels(tier);
     status("Predicting...");
     const uMode = document.querySelector("input[name=u]:checked").value;
-    const args = { formula, sg, text: text || null, vdft, fmt, relaxed: rtext || null, rfmt, gap, mag, form, hull,
+    const args = { formula, sg, text: text || null, vdft, fmt,
                    u: uMode === "rule" ? null : uMode === "on" };
     const d = JSON.parse(py.globals.get("run")(JSON.stringify(args)));
     render(d, sgSource);
@@ -389,11 +347,6 @@ $("file").addEventListener("change", (e) => takeFile(e.target.files[0]));
 drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
 drop.addEventListener("dragleave", () => drop.classList.remove("over"));
 drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); takeFile(e.dataTransfer.files[0]); });
-$("ffile").addEventListener("change", async (e) => {
-  const f = e.target.files[0];
-  relText = f ? await f.text() : ""; relName = f ? f.name : "";
-  if (py) ensureAse();
-});
 $("go").addEventListener("click", predictClick);
 document.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.tagName === "INPUT" && !$("go").disabled) predictClick(); });
 

@@ -269,30 +269,6 @@ def formula_of(atoms) -> str:
     return atoms.get_chemical_formula(mode="metal")
 
 
-def finished_features(atoms, band_gap: float, magnetization: float, formation_energy: float | None = None,
-                      e_above_hull: float | None = None) -> dict[str, float]:
-    """Descriptors of a finished PBE(+U) relaxation (training columns fs_, fg_, fm_, fc_, fe_).
-
-    atoms: the relaxed structure; band_gap in eV; magnetization: total magnetic moment of that cell in
-    mu_B (its absolute value is used); formation_energy and e_above_hull in eV/atom (MP-compatible).
-    """
-    from volcorr.coordination import coordination_features
-
-    if band_gap < 0:
-        raise ValueError("band gap must be >= 0 eV")
-    a, b, c, al, be, ga = (float(v) for v in atoms.cell.cellpar())
-    vol = atoms.get_volume()
-    mag_vol = abs(float(magnetization)) / vol  # mu_B / A^3
-    x = {"fs_alpha": al, "fs_beta": be, "fs_gamma": ga, "fs_a_over_b": a / b, "fs_a_over_c": a / c,
-         "fs_b_over_c": b / c, "fg_gap": float(band_gap), "fg_log1p_gap": math.log1p(float(band_gap)),
-         "fg_gapped": float(band_gap > 0.1), "fm_mag_vol": mag_vol, "fm_mag_atom": mag_vol * vol / len(atoms),
-         "fm_magnetic": float(mag_vol * vol / len(atoms) > 0.05)}
-    x.update({"fc_" + k: v for k, v in coordination_features(atoms).items()})
-    if formation_energy is not None and e_above_hull is not None:
-        x.update({"fe_formation_energy": float(formation_energy), "fe_e_above_hull": float(e_above_hull)})
-    return x
-
-
 def build(formula: str, spacegroup: int | None = None, atoms=None, pbe_plus_u: bool | None = None,
           energy_criterion: bool = False) -> dict[str, float]:
     """All descriptors available from the given inputs (formula is always required).

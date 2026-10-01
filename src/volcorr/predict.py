@@ -11,10 +11,8 @@ MACE_REF = "MACE-MPA-0 (medium), symmetry-constrained relaxation"
 
 def predict(formula: str | None = None, spacegroup: int | None = None, cif: str | None = None,
             v_dft: float | None = None, mace: bool = False, pbe_plus_u: bool | None = None,
-            device: str = "cpu", structure_format: str | None = None, max_mace_atoms: int | None = None,
-            relaxed: str | None = None, relaxed_format: str | None = None, band_gap: float | None = None,
-            magnetization: float | None = None, formation_energy: float | None = None,
-            e_above_hull: float | None = None) -> Prediction:
+            device: str = "cpu", structure_format: str | None = None, max_mace_atoms: int | None = None
+            ) -> Prediction:
     """Predicted volume error.
 
     formula      e.g. "Fe2O3" (required unless a CIF is given)
@@ -24,19 +22,7 @@ def predict(formula: str | None = None, spacegroup: int | None = None, cif: str 
     v_dft        your own PBE(+U) volume in A^3/atom -> corrected volume (tier D)
     mace         relax the CIF with MACE-MPA-0 and correct that volume (tier E)
     pbe_plus_u   override the Materials Project rule for Hubbard U (None = apply the rule)
-    relaxed      your PBE(+U)-relaxed structure (file path or contents); with band_gap (eV) and
-                 magnetization (total moment of that cell, mu_B) -> finished-calculation mode;
-                 formation_energy and e_above_hull (eV/atom, MP-compatible) add the maximum mode
     """
-    if relaxed is not None:
-        if band_gap is None or magnetization is None:
-            raise ValueError("the finished-calculation mode needs the band gap and the magnetization")
-        r_atoms = F.read_structure(relaxed, relaxed_format)
-        if formula is None:
-            formula = F.formula_of(r_atoms)
-        if spacegroup is None and not cif:
-            spacegroup = F.spacegroup_of(r_atoms)
-        v_dft = r_atoms.get_volume() / len(r_atoms)
     atoms = F.read_structure(cif, structure_format) if cif else None
     if formula is None:
         if atoms is None:
@@ -77,12 +63,6 @@ def predict(formula: str | None = None, spacegroup: int | None = None, cif: str 
             raise ValueError("the V_DFT route needs the space group (or a CIF)")
         x.update(F.geometry_features(fracs, float(v_dft), None, prefix="dft"))
         v_ref, tier, ref = float(v_dft), "D_vdft", DFT_REF
-        if relaxed is not None:
-            rf = F.parse_formula(F.formula_of(r_atoms))
-            if set(rf) != set(fracs) or any(abs(rf[e] - fracs[e]) > 1e-3 for e in fracs):
-                raise ValueError("the relaxed structure does not match the formula")
-            x.update(F.finished_features(r_atoms, band_gap, magnetization, formation_energy, e_above_hull))
-            tier = "G_finished_mp" if (formation_energy is not None and e_above_hull is not None) else "F_finished"
     elif atoms is not None:
         x.update(F.geometry_features(fracs, atoms.get_volume() / len(atoms), atoms.cell.cellpar()))
         v_in, tier, ref = atoms.get_volume() / len(atoms), "C_cif", DFT_REF

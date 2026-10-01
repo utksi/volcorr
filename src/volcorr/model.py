@@ -24,8 +24,6 @@ TIER_INFO = {
     "C_cif": "experimental structure",
     "D_vdft": "formula + space group + your PBE(+U) volume",
     "E_mace": "MACE-MPA-0 relaxation of a structure",
-    "F_finished": "finished PBE(+U) relaxation: relaxed structure, band gap, magnetization",
-    "G_finished_mp": "finished PBE(+U) relaxation plus formation energy and energy above hull",
 }
 
 

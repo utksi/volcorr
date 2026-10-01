@@ -25,7 +25,6 @@ volcorr NaCl                            # formula only
 volcorr --cif structure.cif             # experimental structure (CIF, POSCAR, extxyz)
 volcorr NaCl --sg 225 --vdft 23.0       # correct your own PBE(+U) volume, A^3/atom
 volcorr --cif structure.cif --mace      # relax with MACE-MPA-0, then correct
-volcorr --relaxed CONTCAR --gap 1.2 --mag 0      # your finished PBE(+U) relaxation (best)
 ```
 
 A positive error means the calculation overestimates the volume. `--json` prints all
@@ -49,8 +48,6 @@ test compounds are those relaxed with the standard force-based Materials Project
 | experimental structure | 1.24 % | 2.46 % |
 | formula, space group and PBE(+U) volume | 1.32 % | 2.46 % |
 | structure, MACE-MPA-0 relaxation | 1.79 % | 3.67 % |
-| your finished PBE(+U) relaxation: relaxed structure, band gap, magnetization | 1.30 % | 2.46 % |
-| the same plus formation energy and energy above hull | 1.29 % | 2.46 % |
 
 The 68 % and 90 % intervals are quantiles of the held-out residuals. They have the same
 width for every compound.
