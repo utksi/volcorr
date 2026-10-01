@@ -75,6 +75,8 @@ table { border-collapse: collapse; margin: 8px 0; font-size: 13px; }
 td, th { padding: 3px 12px 3px 0; text-align: left; }
 th { color: var(--text); }
 a { color: var(--accent); }
+.linkbtn { margin-top: 6px; padding: 0; border: 0; background: none; color: var(--accent); font: inherit;
+  font-size: 13px; cursor: pointer; }
 code { font-size: 12.5px; }
 </style>
 </head>
@@ -102,6 +104,7 @@ code { font-size: 12.5px; }
         <div class="drop" id="drop" tabindex="0">Drop a file here or click to choose
           <input id="file" type="file" hidden>
         </div>
+        <button type="button" class="linkbtn" id="clearfile" hidden>Remove file</button>
       </div>
       <div id="tab-paste" hidden>
         <textarea id="text" spellcheck="false" placeholder="data_NaCl&#10;_cell_length_a 5.64&#10;..."></textarea>
@@ -154,8 +157,8 @@ code { font-size: 12.5px; }
     <p>The full correction in the accompanying paper reaches 1.09 % for these calculations, but it also uses
       outputs of the finished DFT calculation (relaxed geometry, band gap, magnetization), which are not asked
       for here. A MACE-MPA-0 route needs PyTorch and is available in the
-      <a href="https://github.com/utksi/volcorr">command-line tool</a>. Models:
-      <a href="https://huggingface.co/utksi/volcorr-models">utksi/volcorr-models</a>.</p>
+      <a target="_blank" rel="noopener" href="https://github.com/utksi/volcorr">command-line tool</a>. Models:
+      <a target="_blank" rel="noopener" href="https://huggingface.co/utksi/volcorr-models">utksi/volcorr-models</a>.</p>
   </details>
 </main>
 
@@ -258,6 +261,8 @@ function render(d, sgSource) {
     rows += `<dt>Corrected volume</dt><dd>${d.v_reference_A3_per_atom.toFixed(3)} → <b>${d.v_corrected_A3_per_atom.toFixed(3)} Å³/atom</b></dd>`;
   if (d.v_reference_predicted_A3_per_atom != null)
     rows += `<dt>Expected PBE(+U) volume</dt><dd><b>${d.v_reference_predicted_A3_per_atom.toFixed(3)} Å³/atom</b> (given cell ${d.v_input_A3_per_atom.toFixed(3)})</dd>`;
+  // exact values, read by the consistency check (training/check_web.py)
+  $("result").dataset.values = JSON.stringify({ tier: d.tier, delta: d.delta, i68: d.i68, i90: d.i90, sg: sgSource });
   const warns = (d.warnings || []).map((m) => `<div class="msg warn">${esc(m)}</div>`).join("");
   $("result").innerHTML = `
     <div class="sub">Predicted volume error vs experiment</div>
@@ -328,8 +333,14 @@ async function takeFile(f) {
   if (!f) return;
   structText = await f.text(); structName = f.name;
   drop.firstChild.textContent = `${f.name} (${(f.size / 1024).toFixed(1)} kB), click to replace `;
+  $("clearfile").hidden = false;
   if (py) ensureAse();
 }
+$("clearfile").addEventListener("click", () => {
+  structText = ""; structName = ""; $("file").value = "";
+  drop.firstChild.textContent = "Drop a file here or click to choose ";
+  $("clearfile").hidden = true;
+});
 drop.addEventListener("click", () => $("file").click());
 drop.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") $("file").click(); });
 $("file").addEventListener("change", (e) => takeFile(e.target.files[0]));
