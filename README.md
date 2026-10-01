@@ -4,12 +4,16 @@ volcorr predicts the volume error of a PBE/PBE+U relaxation, done with Materials
 settings, relative to the experimental (ICSD) volume. It can also correct a PBE(+U) or
 MACE-MPA-0 volume.
 
-Web version (runs in the browser): https://huggingface.co/spaces/utksi/volcorr
+Web version with this option: https://huggingface.co/spaces/utksi/volcorr-dft
+
+This branch (`finished-calc`) adds an optional mode that uses the results of your own finished
+PBE(+U) relaxation (relaxed structure, band gap, magnetization; optionally formation energy and
+energy above the hull). The version without it is the `main` branch.
 
 ## Installation
 
 ```
-pip install git+https://github.com/utksi/volcorr
+pip install git+https://github.com/utksi/volcorr@finished-calc
 pip install "volcorr[mace] @ git+https://github.com/utksi/volcorr"   # for the MACE mode
 ```
 

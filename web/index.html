@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>volcorr</title>
+<title>volcorr with DFT results</title>
 <meta name="description" content="Predict how far a PBE/PBE+U (Materials Project settings) relaxation misses the experimental volume of a crystal.">
 <style>
 :root {
@@ -86,10 +86,13 @@ code { font-size: 12.5px; }
 </head>
 <body>
 <main>
-  <h1>volcorr</h1>
+  <h1>volcorr <span style="font-weight:400;color:var(--muted);font-size:18px">with your own DFT results</span></h1>
   <p class="lede">Predicts how far a <b>PBE / PBE+U relaxation done the Materials Project way</b> will miss
     the experimental volume of a crystal. Enter a formula, optionally the space group, or give the
-    structure. Everything runs in your browser; nothing you enter is sent anywhere.</p>
+    structure. If you have run the relaxation yourself, you can also give its relaxed structure, band gap and
+    magnetization (section below the volume field). Everything runs in your browser; nothing you enter is sent
+    anywhere. The version without this option is at
+    <a target="_blank" rel="noopener" href="https://huggingface.co/spaces/utksi/volcorr">utksi/volcorr</a>.</p>
 
   <div class="grid">
     <section class="card" aria-label="Input">
@@ -180,7 +183,7 @@ code { font-size: 12.5px; }
     <p>The full correction in the accompanying paper reaches 1.09 % for these calculations, but it also uses
       outputs of the finished DFT calculation (relaxed geometry, band gap, magnetization), which are not asked
       for here. A MACE-MPA-0 route needs PyTorch and is available in the
-      <a target="_blank" rel="noopener" href="https://github.com/utksi/volcorr">command-line tool</a>. Models:
+      <a target="_blank" rel="noopener" href="https://github.com/utksi/volcorr/tree/finished-calc">command-line tool</a>. Models:
       <a target="_blank" rel="noopener" href="https://huggingface.co/utksi/volcorr-models">utksi/volcorr-models</a>.</p>
   </details>
 </main>
