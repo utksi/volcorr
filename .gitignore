@@ -1,0 +1,15 @@
+# ICSD-derived training data and intermediate results
+training/_private/
+training/explore/
+training/results/
+training/*.log
+__pycache__/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+
+# trained models are hosted on the Hugging Face Hub (utksi/volcorr-models)
+src/volcorr/models/*.txt.gz
+src/volcorr/models/*_mlp.npz
+web/volcorr.zip

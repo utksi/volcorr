@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>volcorr</title>
+<meta name="description" content="Predict how far a PBE/PBE+U (Materials Project settings) relaxation misses the experimental volume of a crystal.">
+<style>
+:root {
+  --bg: #f7f8fa; --card: #ffffff; --text: #1b1f24; --muted: #5d6673; --line: #dfe3e8;
+  --accent: #2f5bd3; --accent-soft: #e8eefc; --warn: #8a5a00; --warn-bg: #fff6e0;
+  --err: #a32020; --err-bg: #fdeaea; --bar: #c9d6f7; --bar-strong: #7c9be6;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111418; --card: #1a1e24; --text: #e6e9ee; --muted: #9aa3ae; --line: #2c323b;
+    --accent: #7ea2ff; --accent-soft: #1f2a44; --warn: #f0c063; --warn-bg: #33290f;
+    --err: #ff9a9a; --err-bg: #3a1717; --bar: #2b3b66; --bar-strong: #4a67b5;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111418; --card: #1a1e24; --text: #e6e9ee; --muted: #9aa3ae; --line: #2c323b;
+  --accent: #7ea2ff; --accent-soft: #1f2a44; --warn: #f0c063; --warn-bg: #33290f;
+  --err: #ff9a9a; --err-bg: #3a1717; --bar: #2b3b66; --bar-strong: #4a67b5;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 980px; margin: 0 auto; padding: 28px 16px 48px; }
+h1 { font-size: 26px; margin: 0 0 4px; letter-spacing: -0.01em; }
+.lede { color: var(--muted); margin: 0 0 22px; max-width: 70ch; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+@media (max-width: 760px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; min-width: 0; }
+label { display: block; font-weight: 600; font-size: 13px; margin: 14px 0 5px; }
+label:first-child { margin-top: 0; }
+.hint { font-weight: 400; color: var(--muted); }
+input[type=text], input[type=number], textarea {
+  width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px;
+  background: var(--bg); color: var(--text); font: inherit; }
+textarea { font: 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; min-height: 130px; resize: vertical; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tabs { display: flex; gap: 4px; margin-bottom: 6px; }
+.tabs button { flex: 1; padding: 6px; border: 1px solid var(--line); background: var(--bg); color: var(--muted);
+  border-radius: 7px; font: inherit; font-size: 13px; cursor: pointer; }
+.tabs button[aria-selected=true] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.drop { border: 1.5px dashed var(--line); border-radius: 8px; padding: 18px; text-align: center; color: var(--muted);
+  cursor: pointer; font-size: 13.5px; overflow-wrap: anywhere; }
+.drop.over { border-color: var(--accent); color: var(--accent); }
+.radios { display: flex; flex-wrap: wrap; gap: 14px; font-size: 14px; }
+.radios label { display: inline-flex; gap: 6px; align-items: center; font-weight: 400; margin: 0; }
+.go { margin-top: 18px; width: 100%; padding: 10px; border: 0; border-radius: 8px; background: var(--accent);
+  color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+.go:disabled { opacity: 0.55; cursor: progress; }
+.status { margin-top: 10px; font-size: 13px; color: var(--muted); min-height: 1.5em; }
+.big { font-size: 40px; font-weight: 700; letter-spacing: -0.02em; margin: 2px 0; }
+.sub { color: var(--muted); font-size: 13.5px; }
+.scale { position: relative; height: 34px; margin: 18px 0 6px; }
+.scale .axis { position: absolute; left: 0; right: 0; top: 16px; height: 2px; background: var(--line); }
+.scale .zero { position: absolute; top: 6px; width: 2px; height: 22px; background: var(--muted); }
+.scale .i90 { position: absolute; top: 11px; height: 12px; background: var(--bar); border-radius: 3px; }
+.scale .i68 { position: absolute; top: 11px; height: 12px; background: var(--bar-strong); border-radius: 3px; }
+.scale .pt { position: absolute; top: 7px; width: 4px; height: 20px; background: var(--accent); border-radius: 2px; }
+.ticks { position: relative; height: 16px; font-size: 11.5px; color: var(--muted); }
+.ticks span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 16px 0 0; font-size: 13.5px; }
+dt { color: var(--muted); } dd { margin: 0; overflow-wrap: anywhere; }
+.msg { margin-top: 12px; padding: 9px 11px; border-radius: 7px; font-size: 13.5px; }
+.msg.warn { background: var(--warn-bg); color: var(--warn); }
+.msg.err { background: var(--err-bg); color: var(--err); }
+.empty { color: var(--muted); font-size: 14px; }
+details { margin-top: 26px; color: var(--muted); font-size: 13.5px; }
+details summary { cursor: pointer; color: var(--text); font-weight: 600; }
+table { border-collapse: collapse; margin: 8px 0; font-size: 13px; }
+td, th { padding: 3px 12px 3px 0; text-align: left; }
+th { color: var(--text); }
+a { color: var(--accent); }
+code { font-size: 12.5px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>volcorr</h1>
+  <p class="lede">Predicts how far a <b>PBE / PBE+U relaxation done the Materials Project way</b> will miss
+    the experimental volume of a crystal. Enter a formula, optionally the space group, or give the
+    structure. Everything runs in your browser; nothing you enter is sent anywhere.</p>
+
+  <div class="grid">
+    <section class="card" aria-label="Input">
+      <label for="formula">Formula <span class="hint">(optional if a structure is given)</span></label>
+      <input id="formula" type="text" placeholder="Fe2O3" autocomplete="off" spellcheck="false">
+
+      <label for="sg">Space group number <span class="hint">(1 to 230; read from the structure if left empty)</span></label>
+      <input id="sg" type="number" min="1" max="230" step="1" placeholder="167">
+
+      <label>Structure <span class="hint">(optional: CIF, POSCAR/CONTCAR, extxyz, ...)</span></label>
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" aria-selected="true" data-tab="upload">Upload file</button>
+        <button type="button" role="tab" aria-selected="false" data-tab="paste">Paste contents</button>
+      </div>
+      <div id="tab-upload">
+        <div class="drop" id="drop" tabindex="0">Drop a file here or click to choose
+          <input id="file" type="file" hidden>
+        </div>
+      </div>
+      <div id="tab-paste" hidden>
+        <textarea id="text" spellcheck="false" placeholder="data_NaCl&#10;_cell_length_a 5.64&#10;..."></textarea>
+      </div>
+
+      <label for="vdft">Your PBE(+U) volume, Å³/atom <span class="hint">(optional → corrected volume)</span></label>
+      <input id="vdft" type="number" step="any" min="0" placeholder="e.g. 23.0">
+
+      <label>Hubbard U</label>
+      <div class="radios">
+        <label><input type="radio" name="u" value="rule" checked> Materials Project rule</label>
+        <label><input type="radio" name="u" value="on"> force PBE+U</label>
+        <label><input type="radio" name="u" value="off"> force PBE</label>
+      </div>
+
+      <button class="go" id="go" disabled>Loading...</button>
+      <div class="status" id="status" aria-live="polite">Starting Python in the browser...</div>
+    </section>
+
+    <section class="card" aria-label="Result" id="result">
+      <p class="empty">The predicted volume error appears here. Positive means the calculation
+        overestimates the experimental (room-temperature) volume.</p>
+    </section>
+  </div>
+
+  <details>
+    <summary>What the prediction refers to</summary>
+    <p>The model learned from relaxations in the Materials Project database, so it predicts the error of a
+      calculation done the same way: PBE with PAW potentials, 520 eV cutoff, spin polarization, and a
+      force-based ionic relaxation. Oxides and fluorides of Co, Cr, Fe, Mn, Mo, Ni, V and W get PBE+U with the
+      Materials Project U values (Co 3.32, Cr 3.7, Fe 5.3, Mn 3.9, Mo 4.38, Ni 6.2, V 3.25, W 6.2 eV); you can
+      override this choice above. It does not cover other functionals (for example r²SCAN) or other U values.</p>
+    <p>Only compounds whose PBE(+U) volume lies within 5 % of experiment were used for training, so materials
+      where PBE fails badly (strongly van der Waals bound or some f-electron systems) are outside its range.
+      Experimental volumes are at room temperature, so the prediction includes thermal expansion.</p>
+  </details>
+  <details>
+    <summary>Method and accuracy</summary>
+    <p>Gradient-boosted trees (LightGBM, absolute-error loss) predict y = ln(V<sub>exp</sub>/V<sub>DFT</sub>) from
+      composition, shell-filling and symmetry descriptors and the calculation settings. They were trained on 29,372
+      Materials Project entries matched to ICSD structures; five models are averaged.</p>
+    <table>
+      <tr><th>Input</th><th>mean absolute error on held-out compounds</th></tr>
+      <tr><td>no correction (plain PBE(+U))</td><td>2.46 %</td></tr>
+      <tr><td>formula</td><td>1.33 %</td></tr>
+      <tr><td>formula + space group</td><td>1.33 %</td></tr>
+      <tr><td>experimental structure</td><td>1.24 %</td></tr>
+      <tr><td>+ your PBE(+U) volume</td><td>1.32 %</td></tr>
+    </table>
+    <p>The full correction in the accompanying paper reaches 1.09 % for these calculations, but it also uses
+      outputs of the finished DFT calculation (relaxed geometry, band gap, magnetization), which are not asked
+      for here. A MACE-MPA-0 route needs PyTorch and is available in the
+      <a href="https://github.com/utksi/volcorr">command-line tool</a>. Models:
+      <a href="https://huggingface.co/utksi/volcorr-models">utksi/volcorr-models</a>.</p>
+  </details>
+</main>
+
+<script type="module">
+import { loadPyodide } from "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/pyodide.mjs";
+import initMoyo, { analyze_cell } from "https://cdn.jsdelivr.net/npm/@spglib/moyo-wasm@0.21.0/moyo_wasm.js";
+
+const MODEL_URL = "https://huggingface.co/utksi/volcorr-models/resolve/main/";
+const $ = (id) => document.getElementById(id);
+const status = (t) => { $("status").textContent = t; };
+let py, aseReady = null, structText = "", structName = "";
+
+const BOOT = `
+import os, sys, json
+sys.path.insert(0, '/home/pyodide/pkg'); os.environ['VOLCORR_CACHE'] = '/home/pyodide/cache'
+from volcorr.model import registry
+
+def tier_files(tier):
+    spec = registry()['tiers'][tier]
+    names = []
+    for f in spec['files']:
+        names += [f['gbdt']['name'], f['mlp']['name']] if spec.get('kind') == 'stack' else [f['name']]
+    return json.dumps(names)
+
+def read_cell(text, fmt):
+    from volcorr import features as F
+    a = F.read_structure(text, fmt or None)
+    return json.dumps({'basis': a.cell.array.flatten().tolist(), 'pos': a.get_scaled_positions().tolist(),
+                       'z': a.numbers.tolist(), 'formula': F.formula_of(a), 'n': len(a)})
+
+def run(args):
+    from volcorr.predict import predict
+    a = json.loads(args)
+    r = predict(a['formula'], a['sg'], a['text'], a['vdft'], False, a['u'], structure_format=a['fmt'])
+    d = r.as_dict()
+    d.update(delta=r.delta, i68=list(r.interval68), i90=list(r.interval90))
+    return json.dumps(d)
+`;
+
+async function boot() {
+  try {
+    const moyo = initMoyo();
+    py = await loadPyodide();
+    status("Loading numpy and LightGBM...");
+    await py.loadPackage(["numpy", "lightgbm", "micropip"]);
+    const zip = await (await fetch("volcorr.zip")).arrayBuffer();
+    py.unpackArchive(zip, "zip", { extractDir: "/home/pyodide/pkg" });
+    py.FS.mkdirTree("/home/pyodide/cache");
+    await py.runPythonAsync(BOOT);
+    await moyo;
+    $("go").disabled = false; $("go").textContent = "Predict";
+    status("Ready.");
+  } catch (e) {
+    status("Could not start: " + e.message);
+  }
+}
+
+function ensureAse() {
+  if (!aseReady) aseReady = py.pyimport("micropip").install(["ase"]);
+  return aseReady;
+}
+
+function guessFormat(name) {
+  const n = (name || "").toLowerCase();
+  if (n.endsWith(".cif")) return "cif";
+  if (n.includes("poscar") || n.includes("contcar") || n.endsWith(".vasp")) return "vasp";
+  if (n.endsWith(".xyz") || n.endsWith(".extxyz")) return "extxyz";
+  return null;
+}
+
+async function fetchModels(tier) {
+  const names = JSON.parse(py.globals.get("tier_files")(tier));
+  for (let i = 0; i < names.length; i++) {
+    const path = "/home/pyodide/cache/" + names[i];
+    if (py.FS.analyzePath(path).exists) continue;
+    status(`Downloading model ${i + 1}/${names.length} (first use of this mode only)...`);
+    const res = await fetch(MODEL_URL + names[i]);
+    if (!res.ok) throw new Error(`model download failed (${res.status})`);
+    py.FS.writeFile(path, new Uint8Array(await res.arrayBuffer()));
+  }
+}
+
+function pct(v) { return (v >= 0 ? "+" : "") + v.toFixed(2) + " %"; }
+function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+function render(d, sgSource) {
+  const lo = Math.min(d.i90[0], 0), hi = Math.max(d.i90[1], 0);
+  const pad = (hi - lo) * 0.08, a = lo - pad, b = hi + pad;
+  const x = (v) => (100 * (v - a) / (b - a)).toFixed(2) + "%";
+  const w = (u, v) => (100 * (v - u) / (b - a)).toFixed(2) + "%";
+  const s = d.settings_assumed || {};
+  const u = s.U_eV && Object.keys(s.U_eV).length ? " (U: " + Object.entries(s.U_eV).map(([k, v]) => `${k} ${v} eV`).join(", ") + ")" : "";
+  let rows = `<dt>Input used</dt><dd>${esc(d.input)}${sgSource ? "; " + esc(sgSource) : ""}</dd>
+    <dt>Reference</dt><dd>${esc(d.reference)}</dd>
+    <dt>Settings</dt><dd>${esc(s.functional || "")}${esc(u)}</dd>
+    <dt>68 % interval</dt><dd>${pct(d.i68[0])} to ${pct(d.i68[1])}</dd>
+    <dt>90 % interval</dt><dd>${pct(d.i90[0])} to ${pct(d.i90[1])}</dd>
+`;
+  if (d.v_corrected_A3_per_atom != null)
+    rows += `<dt>Corrected volume</dt><dd>${d.v_reference_A3_per_atom.toFixed(3)} → <b>${d.v_corrected_A3_per_atom.toFixed(3)} Å³/atom</b></dd>`;
+  if (d.v_reference_predicted_A3_per_atom != null)
+    rows += `<dt>Expected PBE(+U) volume</dt><dd><b>${d.v_reference_predicted_A3_per_atom.toFixed(3)} Å³/atom</b> (given cell ${d.v_input_A3_per_atom.toFixed(3)})</dd>`;
+  const warns = (d.warnings || []).map((m) => `<div class="msg warn">${esc(m)}</div>`).join("");
+  $("result").innerHTML = `
+    <div class="sub">Predicted volume error vs experiment</div>
+    <div class="big">${pct(d.delta)}</div>
+    <div class="sub">${d.delta >= 0 ? "PBE(+U) is expected to overestimate the volume." : "PBE(+U) is expected to underestimate the volume."}</div>
+    <div class="scale" aria-hidden="true">
+      <div class="axis"></div>
+      <div class="i90" style="left:${x(d.i90[0])};width:${w(d.i90[0], d.i90[1])}"></div>
+      <div class="i68" style="left:${x(d.i68[0])};width:${w(d.i68[0], d.i68[1])}"></div>
+      <div class="zero" style="left:${x(0)}"></div>
+      <div class="pt" style="left:calc(${x(d.delta)} - 2px)"></div>
+    </div>
+    <div class="ticks"><span style="left:${x(d.i90[0])}">${pct(d.i90[0])}</span>${Math.abs(d.i90[0]) > 0.15 * (b - a) && Math.abs(d.i90[1]) > 0.15 * (b - a) ? `<span style="left:${x(0)}">0</span>` : ""}<span style="left:${x(d.i90[1])}">${pct(d.i90[1])}</span></div>
+    <dl>${rows}</dl>
+    <p class="sub" style="margin-top:12px">Intervals: for held-out compounds, the true error lay within the
+      68 % interval for 68 % of them and within the 90 % interval for 90 %. The width is the same for every
+      compound; it reflects the typical accuracy of the model, not a material-specific uncertainty.</p>${warns}`;
+}
+
+async function predictClick() {
+  $("go").disabled = true;
+  try {
+    const pasteMode = !$("tab-paste").hidden;
+    const text = pasteMode ? $("text").value.trim() : structText;
+    const fmt = pasteMode ? null : guessFormat(structName);
+    let sg = $("sg").value ? parseInt($("sg").value, 10) : null;
+    let formula = $("formula").value.trim() || null;
+    let sgSource = sg ? "space group as entered" : "";
+    if (text) {
+      status("Loading the structure reader...");
+      await ensureAse();
+      const cell = JSON.parse(py.globals.get("read_cell")(text, fmt));
+      if (!sg) {
+        const r = analyze_cell(JSON.stringify({ lattice: { basis: cell.basis }, positions: cell.pos, numbers: cell.z }), 0.01, "Standard");
+        sg = r.number; sgSource = `space group ${r.number} (${r.hm_symbol}) found in the structure`;
+      }
+      if (!formula) formula = cell.formula;
+    }
+    if (!formula) throw new Error("Enter a formula or give a structure.");
+    const vdft = $("vdft").value ? parseFloat($("vdft").value) : null;
+    if (vdft != null && !sg) throw new Error("A corrected volume needs the space group (or a structure).");
+    const tier = vdft != null ? "D_vdft" : text ? "C_cif" : sg ? "B_spacegroup" : "A_formula";
+    await fetchModels(tier);
+    status("Predicting...");
+    const uMode = document.querySelector("input[name=u]:checked").value;
+    const args = { formula, sg, text: text || null, vdft, fmt,
+                   u: uMode === "rule" ? null : uMode === "on" };
+    const d = JSON.parse(py.globals.get("run")(JSON.stringify(args)));
+    render(d, sgSource);
+    status("Done.");
+  } catch (e) {
+    const msg = (e.message || String(e)).split("\n").filter(Boolean).pop();
+    $("result").innerHTML = `<div class="msg err">${esc(msg)}</div>`;
+    status("");
+  } finally {
+    $("go").disabled = false;
+  }
+}
+
+// structure input: tabs, file picker, drag and drop
+document.querySelectorAll(".tabs button").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll(".tabs button").forEach((o) => o.setAttribute("aria-selected", o === b));
+  $("tab-upload").hidden = b.dataset.tab !== "upload";
+  $("tab-paste").hidden = b.dataset.tab !== "paste";
+}));
+const drop = $("drop");
+async function takeFile(f) {
+  if (!f) return;
+  structText = await f.text(); structName = f.name;
+  drop.firstChild.textContent = `${f.name} (${(f.size / 1024).toFixed(1)} kB), click to replace `;
+  if (py) ensureAse();
+}
+drop.addEventListener("click", () => $("file").click());
+drop.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") $("file").click(); });
+$("file").addEventListener("change", (e) => takeFile(e.target.files[0]));
+drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
+drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); takeFile(e.dataTransfer.files[0]); });
+$("go").addEventListener("click", predictClick);
+document.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.tagName === "INPUT" && !$("go").disabled) predictClick(); });
+
+boot();
+</script>
+</body>
+</html>

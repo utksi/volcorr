@@ -1,0 +1,57 @@
+[
+ {
+  "id": "NaCl_A",
+  "kwargs": {
+   "formula": "NaCl"
+  },
+  "tier": "A_formula",
+  "delta": 2.4983779334204703
+ },
+ {
+  "id": "NaCl_B",
+  "kwargs": {
+   "formula": "NaCl",
+   "spacegroup": 225
+  },
+  "tier": "B_spacegroup",
+  "delta": 2.622083851292789
+ },
+ {
+  "id": "Fe2O3_B",
+  "kwargs": {
+   "formula": "Fe2O3",
+   "spacegroup": 167
+  },
+  "tier": "B_spacegroup",
+  "delta": 1.765112050798967
+ },
+ {
+  "id": "Si_B",
+  "kwargs": {
+   "formula": "Si",
+   "spacegroup": 227
+  },
+  "tier": "B_spacegroup",
+  "delta": 1.173354941349558
+ },
+ {
+  "id": "MnO_B_noU",
+  "kwargs": {
+   "formula": "MnO",
+   "spacegroup": 225,
+   "pbe_plus_u": false
+  },
+  "tier": "B_spacegroup",
+  "delta": 1.5207777583289284
+ },
+ {
+  "id": "NaCl_D",
+  "kwargs": {
+   "formula": "NaCl",
+   "spacegroup": 225,
+   "v_dft": 23.0
+  },
+  "tier": "D_vdft",
+  "delta": 2.5876034492140265
+ }
+]

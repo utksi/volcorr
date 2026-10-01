@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "volcorr"
+version = "0.1.0"
+description = "Predict and correct the PBE/PBE+U (Materials Project) and MACE-MPA-0 volume error of crystals relative to experiment"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Utkarsh Singh" }]
+dependencies = ["numpy>=1.22", "lightgbm>=4.0", "ase>=3.23", "spglib>=2.0"]
+
+[project.optional-dependencies]
+mace = ["mace-torch>=0.3.10", "torch"]
+dev = ["pytest", "ruff"]
+
+[project.scripts]
+volcorr = "volcorr.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+volcorr = ["data/*.json", "models/*.json", "models/*.txt.gz"]
+
+[tool.ruff]
+line-length = 110
