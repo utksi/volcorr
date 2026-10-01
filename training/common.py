@@ -36,6 +36,10 @@ TIERS = {
     "C_cif":       (("comp_", "shell_", "sym_", "cell_"), "dft"),
     "D_vdft":      (("comp_", "shell_", "sym_", "dft_"), "dft"),
     "E_mace":      (("comp_", "shell_", "sym_", "mace_"), "mace"),
+    # finished PBE(+U) calculation: relaxed structure (volume, shape, coordination), band gap, magnetization
+    "F_finished":  (("comp_", "shell_", "sym_", "dft_", "fs_", "fg_", "fm_", "fc_"), "dft"),
+    # ... plus MP-compatible formation energy and energy above the convex hull
+    "G_finished_mp": (("comp_", "shell_", "sym_", "dft_", "fs_", "fg_", "fm_", "fc_", "fe_"), "dft"),
 }
 
 

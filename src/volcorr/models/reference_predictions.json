@@ -53,5 +53,27 @@
   },
   "tier": "D_vdft",
   "delta": 2.5876034492140265
+ },
+ {
+  "id": "NaCl_F",
+  "kwargs": {
+   "relaxed": "NaCl\n1.0\n0 2.85 2.85\n2.85 0 2.85\n2.85 2.85 0\nNa Cl\n1 1\nDirect\n0 0 0\n0.5 0.5 0.5\n",
+   "band_gap": 5.0,
+   "magnetization": 0.0
+  },
+  "tier": "F_finished",
+  "delta": 2.725852323557021
+ },
+ {
+  "id": "NaCl_G",
+  "kwargs": {
+   "relaxed": "NaCl\n1.0\n0 2.85 2.85\n2.85 0 2.85\n2.85 2.85 0\nNa Cl\n1 1\nDirect\n0 0 0\n0.5 0.5 0.5\n",
+   "band_gap": 5.0,
+   "magnetization": 0.0,
+   "formation_energy": -2.1,
+   "e_above_hull": 0.0
+  },
+  "tier": "G_finished_mp",
+  "delta": 2.6856825994246325
  }
 ]

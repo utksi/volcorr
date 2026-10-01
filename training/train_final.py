@@ -48,18 +48,22 @@ def main():
     ap.add_argument("--params", default="compact", choices=list(PARAMS))
     ap.add_argument("--settings", default="recorded", choices=["recorded", "rule"])
     ap.add_argument("--members", type=int, default=10)
+    ap.add_argument("--tiers", nargs="*", default=None, help="train only these tiers and merge into the registry")
     ap.add_argument("--base-url", default="https://huggingface.co/utksi/volcorr-models/resolve/main")
     a = ap.parse_args()
 
     D = C.load()
     MODELS.mkdir(parents=True, exist_ok=True)
     seeds = C.SEEDS[: a.members]
-    jobs = [(t, a.settings if t != "E_mace" else "none", a.params, s) for t in C.TIERS for s in seeds]
+    tiers = a.tiers or list(C.TIERS)
+    jobs = [(t, a.settings if t != "E_mace" else "none", a.params, s) for t in tiers for s in seeds]
     out = Parallel(n_jobs=10, verbose=5)(delayed(member)(*j, D) for j in jobs)
 
     reg = {"version": 1, "base_url": a.base_url, "params": a.params, "settings": a.settings,
            "target": "y = ln(V_exp / V_ref)", "tiers": {}}
-    for tier in C.TIERS:
+    if a.tiers and (MODELS / "registry.json").exists():
+        reg = json.loads((MODELS / "registry.json").read_text())
+    for tier in tiers:
         rows = [o for j, o in zip(jobs, out) if j[0] == tier]
         files = []
         for k, (text, names, _, _) in enumerate(rows):
@@ -81,9 +85,13 @@ def main():
             "heldout_mape_percent": mape,
             "heldout_uncorrected_mape_percent": C.mape(np.zeros(len(te_all)), v0[te_all], D["v_exp"][te_all]),
             "n_heldout": int(len(res))}
-        print(f"{tier:13s} held-out MAPE {mape:.3f}%  q68 {reg['tiers'][tier]['residual_quantiles']['q68']:.4f}"
+        maj = ~D["energy_criterion"][te_all]
+        reg["tiers"][tier]["heldout_mape_majority_percent"] = C.mape(y_hat[maj], v0[te_all][maj], D["v_exp"][te_all][maj])
+        print(f"{tier:13s} majority {reg['tiers'][tier]['heldout_mape_majority_percent']:.3f}%  held-out MAPE {mape:.3f}%  q68 {reg['tiers'][tier]['residual_quantiles']['q68']:.4f}"
               f"  size {sum(f['mb'] for f in files):.1f} MB")
     (MODELS / "registry.json").write_text(json.dumps(reg, indent=1))
+    if a.tiers:
+        return
 
     # Aggregate applicability statistics (counts and ranges only; no entries).
     from volcorr import features as F

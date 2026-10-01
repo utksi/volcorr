@@ -14,7 +14,11 @@ from volcorr.predict import predict  # noqa: E402
 CASES = [("NaCl_A", {"formula": "NaCl"}), ("NaCl_B", {"formula": "NaCl", "spacegroup": 225}),
          ("Fe2O3_B", {"formula": "Fe2O3", "spacegroup": 167}), ("Si_B", {"formula": "Si", "spacegroup": 227}),
          ("MnO_B_noU", {"formula": "MnO", "spacegroup": 225, "pbe_plus_u": False}),
-         ("NaCl_D", {"formula": "NaCl", "spacegroup": 225, "v_dft": 23.0})]
+         ("NaCl_D", {"formula": "NaCl", "spacegroup": 225, "v_dft": 23.0}),
+         ("NaCl_F", {"relaxed": "NaCl\n1.0\n0 2.85 2.85\n2.85 0 2.85\n2.85 2.85 0\nNa Cl\n1 1\nDirect\n0 0 0\n0.5 0.5 0.5\n",
+                     "band_gap": 5.0, "magnetization": 0.0}),
+         ("NaCl_G", {"relaxed": "NaCl\n1.0\n0 2.85 2.85\n2.85 0 2.85\n2.85 2.85 0\nNa Cl\n1 1\nDirect\n0 0 0\n0.5 0.5 0.5\n",
+                     "band_gap": 5.0, "magnetization": 0.0, "formation_energy": -2.1, "e_above_hull": 0.0})]
 out = []
 for cid, kw in CASES:
     r = predict(**kw)
